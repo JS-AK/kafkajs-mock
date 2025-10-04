@@ -1,11 +1,13 @@
 # kafkajs-mock
 
+![ci-cd](https://github.com/JS-AK/kafkajs-mock/actions/workflows/ci-cd-master.yml/badge.svg)
+
 Mock for KafkaJS library, designed for testing applications that use Apache Kafka.
 
 ## Installation
 
 ```bash
-npm install kafkajs-mock
+npm install @js-ak/kafkajs-mock
 ```
 
 ## Usage
@@ -19,7 +21,7 @@ import { vi } from 'vitest';
 
 // Mock the kafkajs module
 vi.mock('kafkajs', async () => {
-  const { Kafka: MockKafka } = await import('kafkajs-mock');
+  const { Kafka: MockKafka } = await import('@js-ak/kafkajs-mock');
   const kafkajs = await vi.importActual('kafkajs');
 
   return { ...kafkajs, Kafka: MockKafka };
@@ -33,7 +35,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock kafkajs module
 vi.mock('kafkajs', async () => {
-  const { Kafka: MockKafka } = await import('kafkajs-mock');
+  const { Kafka: MockKafka } = await import('@js-ak/kafkajs-mock');
   const kafkajs = await vi.importActual('kafkajs');
   return { ...kafkajs, Kafka: MockKafka };
 });
@@ -99,7 +101,7 @@ describe('My Kafka Service', () => {
 ```javascript
 // jest.setup.js or in your test file
 jest.mock('kafkajs', async () => {
-  const { Kafka: MockKafka } = await import('kafkajs-mock');
+  const { Kafka: MockKafka } = await import('@js-ak/kafkajs-mock');
   const kafkajs = await jest.requireActual('kafkajs');
   return { ...kafkajs, Kafka: MockKafka };
 });
@@ -109,7 +111,7 @@ jest.mock('kafkajs', async () => {
 
 ```javascript
 // In your test setup
-const { Kafka: MockKafka } = require('kafkajs-mock');
+const { Kafka: MockKafka } = require('@js-ak/kafkajs-mock');
 const kafkajs = require('kafkajs');
 
 // Replace Kafka class
@@ -119,7 +121,7 @@ kafkajs.Kafka = MockKafka;
 ### Basic example
 
 ```javascript
-const { Kafka } = require('kafkajs-mock');
+const { Kafka } = require('@js-ak/kafkajs-mock');
 
 const kafka = new Kafka({
   clientId: 'my-app',
