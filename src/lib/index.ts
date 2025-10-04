@@ -1,1 +1,1 @@
-export const isTest = (str: string) => str === 'TEST'
+export * as kafkaJs from "./kafka-js/index.js";
