@@ -1,3 +1,10 @@
+# 1.0.0 (2025-10-04)
+
+
+### Features
+
+* added initial core functionality ([0a7f052](https://github.com/JS-AK/kafkajs-mock/commit/0a7f052976e4f8cc527e6f4c6fab9a2ea447b641))
+
 ## [1.6.1](https://github.com/JS-AK/example-automatic-deploy-ts-app-to-npm-with-scope/compare/v1.6.0...v1.6.1) (2024-06-22)
 
 
