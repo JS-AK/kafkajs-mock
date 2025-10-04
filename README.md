@@ -1,84 +1,229 @@
-# Example: Automatic Deployment of TypeScript App to npm with Scope
+# kafkajs-mock
 
-## Overview
-This guide outlines the steps to automatically deploy a TypeScript application to npm with a specific scope using GitHub Actions. By setting up this workflow, you can streamline the process of updating and publishing your package to npm, ensuring seamless integration with your development pipeline.
+Mock for KafkaJS library, designed for testing applications that use Apache Kafka.
 
-## Prerequisites
-Before proceeding, make sure you have the following:
+## Installation
 
-- Access to the GitHub repository containing your TypeScript project.
-- An npm account with permissions to publish packages to the desired scope.
-- GitHub Personal Access Token (GH_TOKEN) with the necessary permissions to push changes and trigger GitHub Actions.
-- npm token (NPM_TOKEN) with permissions to publish packages.
+```bash
+npm install kafkajs-mock
+```
 
-## Workflow Setup
-To automate the deployment process, follow these steps:
+## Usage
 
-1. **Create Secrets**: In your GitHub repository, navigate to "Settings" > "Secrets" and add the following secrets:
-    - `GH_TOKEN`: GitHub Personal Access Token.
-    - `NPM_TOKEN`: npm token.
+### Mocking KafkaJS in Tests
 
-2. **Configure GitHub Actions Workflow**: Create or modify your GitHub Actions workflow file (e.g., `.github/workflows/deploy.yml`) to define the deployment steps. Below is a sample workflow file:
+To use this mock in your tests, you need to mock the `kafkajs` module:
 
-    ```yaml
-    name: make-release
+```javascript
+import { vi } from 'vitest';
 
-    on:
-      push:
-        branches:
-          - master
+// Mock the kafkajs module
+vi.mock('kafkajs', async () => {
+  const { Kafka: MockKafka } = await import('kafkajs-mock');
+  const kafkajs = await vi.importActual('kafkajs');
 
-    jobs:
+  return { ...kafkajs, Kafka: MockKafka };
+});
+```
 
-      runner-job:
-        runs-on: ubuntu-latest
+#### Complete Test Example
 
-        steps:
-          - name: Check out repository code
-            uses: actions/checkout@v4
+```javascript
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-          - name: Install dependencies
-            run: npm ci
+// Mock kafkajs module
+vi.mock('kafkajs', async () => {
+  const { Kafka: MockKafka } = await import('kafkajs-mock');
+  const kafkajs = await vi.importActual('kafkajs');
+  return { ...kafkajs, Kafka: MockKafka };
+});
 
-          - name: Run Tests
-            run: npm test
+import { Kafka } from 'kafkajs';
 
-      release:
-        name: Release
-        runs-on: ubuntu-latest
-        steps:
+describe('My Kafka Service', () => {
+  let kafka;
+  let producer;
+  let consumer;
 
-          - name: Checkout
-            uses: actions/checkout@v4
-            with:
-              fetch-depth: 0
-              persist-credentials: false
+  beforeEach(async () => {
+    kafka = new Kafka({
+      clientId: 'test-app',
+      brokers: ['localhost:9092'],
+    });
 
-          - name: Setup Node.js
-            uses: actions/setup-node@v4
-            with:
-              node-version: '20'
-              registry-url: 'https://registry.npmjs.org'
+    producer = kafka.producer();
+    consumer = kafka.consumer({ groupId: 'test-group' });
 
-          - name: Install dependencies and build 🔧
-            run: npm ci && npm run build
+    await producer.connect();
+    await consumer.connect();
+  });
 
-          - name: Make Release
-            run: npx semantic-release
-            env:
-              GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-    ```
+  afterEach(async () => {
+    await producer.disconnect();
+    await consumer.disconnect();
+  });
 
-    This workflow triggers on pushes to the `main` branch. It installs dependencies, builds the project, and then publishes it to npm.
+  it('should send and receive messages', async () => {
+    const testMessage = 'Hello, Kafka!';
+    const receivedMessages = [];
 
-3. **Commit and Push Changes**: Commit the workflow file changes to your repository and push them to GitHub. This action triggers the workflow defined in the YAML file.
+    // Subscribe to topic
+    await consumer.subscribe({
+      topics: ['test-topic'],
+      fromBeginning: true
+    });
 
-4. **Monitor Deployment**: Once the workflow is triggered, monitor its progress in the "Actions" tab of your GitHub repository. You should see the workflow executing the defined steps.
+    // Start consuming
+    await consumer.run({
+      eachMessage: async ({ message }) => {
+        receivedMessages.push(message.value.toString());
+      },
+    });
 
-5. **Verify Deployment**: After successful execution, verify that your TypeScript application has been deployed to npm with the specified scope.
+    // Send message
+    await producer.send({
+      topic: 'test-topic',
+      messages: [{ value: testMessage }],
+    });
 
-## Conclusion
-By implementing this GitHub Actions workflow, you've automated the process of deploying your TypeScript application to npm, saving time and ensuring consistency in your development workflow. With secrets management and continuous integration in place, you can confidently publish updates to your npm package with ease.
+    // Wait for message processing
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-Happy coding!
+    expect(receivedMessages).toContain(testMessage);
+  });
+});
+```
+
+#### For Jest
+
+```javascript
+// jest.setup.js or in your test file
+jest.mock('kafkajs', async () => {
+  const { Kafka: MockKafka } = await import('kafkajs-mock');
+  const kafkajs = await jest.requireActual('kafkajs');
+  return { ...kafkajs, Kafka: MockKafka };
+});
+```
+
+#### For Mocha/Chai
+
+```javascript
+// In your test setup
+const { Kafka: MockKafka } = require('kafkajs-mock');
+const kafkajs = require('kafkajs');
+
+// Replace Kafka class
+kafkajs.Kafka = MockKafka;
+```
+
+### Basic example
+
+```javascript
+const { Kafka } = require('kafkajs-mock');
+
+const kafka = new Kafka({
+  clientId: 'my-app',
+  brokers: ['kafka1:9092', 'kafka2:9092'],
+});
+```
+
+### Producer
+
+```javascript
+const producer = kafka.producer();
+
+await producer.connect();
+await producer.send({
+  topic: 'test-topic',
+  messages: [
+    { value: 'Hello KafkaJS user!' },
+  ],
+});
+
+await producer.disconnect();
+```
+
+### Consumer
+
+```javascript
+const consumer = kafka.consumer({ groupId: 'test-group' });
+
+await consumer.connect();
+await consumer.subscribe({ topic: 'test-topic', fromBeginning: true });
+
+await consumer.run({
+  eachMessage: async ({ topic, partition, message }) => {
+    console.log({
+      value: message.value.toString(),
+    });
+  },
+});
+```
+
+## Testing
+
+### Running tests
+
+```bash
+# Run all tests
+npm test
+
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests
+npm run test:integration
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test structure
+
+- `*.unit.spec.ts` - unit tests for individual components
+- `*.integration.spec.ts` - integration tests for complete scenarios
+
+## API
+
+### Kafka
+
+Main class for creating Kafka client.
+
+#### Methods
+
+- `producer(config?)` - creates producer
+- `consumer(config)` - creates consumer
+- `admin()` - creates admin client
+- `disconnect()` - disconnects from all connections
+
+#### Producer Methods
+
+- `connect()` - connects to Kafka
+- `send(record)` - sends messages
+- `disconnect()` - disconnects from Kafka
+
+#### Consumer Methods
+
+- `connect()` - connects to Kafka
+- `subscribe(topics)` - subscribes to topics
+- `run(config)` - starts message processing
+- `disconnect()` - disconnects from Kafka
+
+## Features
+
+- Compatible with basic KafkaJS API for testing
+- Supports core producer/consumer operations
+- Perfect for unit and integration tests
+- No real Kafka broker required
+- Simplified implementation focused on testing scenarios
+
+## Limitations
+
+- Not a full KafkaJS replacement - only core functionality for testing
+- No real Kafka protocol implementation
+- Simplified message ordering and partitioning
+- Limited error handling compared to real Kafka
+- Some advanced features may not be available
