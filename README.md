@@ -4,6 +4,8 @@
 
 Mock for KafkaJS library, designed for testing applications that use Apache Kafka.
 
+> **⚠️ Important:** This mock is specifically designed for applications that use **KafkaJS** library. If you're using other Kafka clients (like `node-rdkafka`, `kafka-node`, etc.), this mock will not work for you.
+
 ## Installation
 
 ```bash
