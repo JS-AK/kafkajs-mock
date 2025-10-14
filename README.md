@@ -100,19 +100,18 @@ describe('My Kafka Service', () => {
 
 #### For Jest
 
-You can also configure the mock directly in your Jest configuration:
+You can configure the mock globally in your Jest setup file:
 
 ```javascript
 // jest.config.js
-module.exports = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  moduleNameMapping: {
-    '^kafkajs$': '<rootDir>/path/to/your/kafkajs-mock'
-  }
+export default {
+  testEnvironment: 'node',
+  moduleNameMapper: {
+    '^kafkajs$': '@js-ak/kafkajs-mock',
+  },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'], // опционально
 };
 ```
-
-Or using `jest.mock()` in your setup file:
 
 ```javascript
 // jest.setup.js
@@ -141,15 +140,15 @@ You can also configure the mock directly in your Vitest configuration file to av
 ```javascript
 // vitest.config.js
 import { defineConfig } from "vitest/config";
-import path from "path";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      kafkajs: "@js-ak/kafkajs-mock",
+    },
+  },
   test: {
     environment: "node",
-    setupFiles: ["./vitest.setup.js"],
-    alias: {
-      "kafkajs": path.resolve("./path/to/your/kafkajs-mock")
-    }
   },
 });
 ```
@@ -160,6 +159,7 @@ Or using `vi.mock()` in your setup file:
 // vitest.setup.js
 import { vi } from 'vitest';
 
+// Mock kafkajs library with @js-ak/kafkajs-mock
 vi.mock('kafkajs', async () => {
   const { Kafka: MockKafka } = await import('@js-ak/kafkajs-mock');
   const kafkajs = await vi.importActual('kafkajs');
